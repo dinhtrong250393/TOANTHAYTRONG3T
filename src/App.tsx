@@ -1,16 +1,23 @@
-import { LayoutGrid, Plus, Search, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Download, LayoutGrid, Plus, Search, Upload, X } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { AppCard } from './components/AppCard';
 import { AppFormModal } from './components/AppFormModal';
 import { useApps } from './hooks/useApps';
 import type { WebAppItem } from './types/app';
 
 export default function App() {
-  const { apps, addApp, updateApp, deleteApp } = useApps();
+  const { apps, addApp, updateApp, deleteApp, importApps } = useApps();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingApp, setEditingApp] = useState<WebAppItem | null>(null);
+  const [notice, setNotice] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const filteredApps = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -21,6 +28,13 @@ export default function App() {
         app.url.toLowerCase().includes(q),
     );
   }, [apps, searchQuery]);
+
+  const showNotice = (type: 'success' | 'error', text: string) => {
+    setNotice({ type, text });
+    window.setTimeout(() => {
+      setNotice((current) => (current?.text === text ? null : current));
+    }, 4500);
+  };
 
   const handleOpenAdd = () => {
     setEditingApp(null);
@@ -40,6 +54,46 @@ export default function App() {
       updateApp(editingId, payload);
     } else {
       addApp(payload);
+    }
+  };
+
+  const handleExport = () => {
+    if (apps.length === 0) {
+      showNotice('error', 'Chưa có ứng dụng nào để xuất dữ liệu.');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(apps, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'apps-data.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showNotice(
+      'success',
+      `Đã tải xuống apps-data.json (${apps.length} ứng dụng). Bạn có thể nhập file này trên Vercel hoặc đưa vào public/apps-data.json trên GitHub.`,
+    );
+  };
+
+  const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const count = importApps(parsed);
+      showNotice('success', `Đã nhập ${count} ứng dụng lên trang chủ.`);
+    } catch (err) {
+      showNotice(
+        'error',
+        err instanceof Error ? err.message : 'Không thể đọc tệp dữ liệu JSON.',
+      );
+    } finally {
+      if (importInputRef.current) importInputRef.current.value = '';
     }
   };
 
@@ -72,10 +126,10 @@ export default function App() {
                 <span>Kích trực tiếp vào thẻ để mở ứng dụng ngay</span>
               </p>
 
-              {/* Centered Search + Primary CTA Row */}
-              <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              {/* Centered Search + Actions Row */}
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
                 {apps.length > 0 && (
-                  <div className="relative w-full sm:w-72">
+                  <div className="relative w-full sm:w-64">
                     <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-500" />
                     <input
                       type="text"
@@ -101,15 +155,58 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleOpenAdd}
-                  className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/25 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-600/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:w-auto whitespace-nowrap shrink-0"
+                  className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 px-5 text-sm font-semibold text-white shadow-md shadow-blue-600/25 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-600/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 whitespace-nowrap shrink-0"
                 >
                   <Plus className="h-4 w-4 shrink-0" />
                   <span>Thêm ứng dụng</span>
+                </button>
+
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleImportFile}
+                  className="hidden"
+                />
+
+                {apps.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    title="Xuất danh sách ứng dụng ra file apps-data.json"
+                    className="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-2xs transition-colors hover:border-sky-300 hover:bg-sky-50 hover:text-blue-700 whitespace-nowrap shrink-0"
+                  >
+                    <Download className="h-4 w-4 shrink-0" />
+                    <span>Xuất file</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => importInputRef.current?.click()}
+                  title="Nhập danh sách ứng dụng từ file apps-data.json"
+                  className="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-2xs transition-colors hover:border-sky-300 hover:bg-sky-50 hover:text-blue-700 whitespace-nowrap shrink-0"
+                >
+                  <Upload className="h-4 w-4 shrink-0" />
+                  <span>Nhập file</span>
                 </button>
               </div>
             </div>
           </div>
         </header>
+
+        {notice && (
+          <div
+            role="status"
+            className={`mx-auto mb-6 max-w-4xl rounded-2xl border px-4 py-3 text-center text-sm shadow-sm ${
+              notice.type === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-red-200 bg-red-50 text-red-700'
+            }`}
+          >
+            {notice.text}
+          </div>
+        )}
 
         {/* Centered Empty State or Centered App Cards */}
         {apps.length === 0 ? (
@@ -121,16 +218,26 @@ export default function App() {
               Chưa có ứng dụng nào trên trang chủ
             </h2>
             <p className="mt-1.5 max-w-md text-sm text-slate-600">
-              Nhấn nút bên dưới để thêm tên ứng dụng, tải ảnh giao diện/logo và gắn đường link chạy ứng dụng web của bạn.
+              Nhấn nút bên dưới để thêm ứng dụng mới, hoặc nhấn <strong>Nhập file</strong> để nạp danh sách đã xuất từ thiết bị khác.
             </p>
-            <button
-              type="button"
-              onClick={handleOpenAdd}
-              className="mt-6 inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Thêm ứng dụng đầu tiên</span>
-            </button>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleOpenAdd}
+                className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Thêm ứng dụng đầu tiên</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => importInputRef.current?.click()}
+                className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-2xs transition-colors hover:border-sky-300 hover:bg-sky-50 hover:text-blue-700"
+              >
+                <Upload className="h-4 w-4" />
+                <span>Nhập file (.json)</span>
+              </button>
+            </div>
           </div>
         ) : filteredApps.length === 0 ? (
           <div className="mx-auto flex max-w-xl flex-col items-center justify-center rounded-3xl border border-slate-200/80 bg-white px-6 py-14 text-center shadow-[0_10px_30px_-8px_rgba(15,23,42,0.08)]">
