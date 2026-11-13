@@ -1,0 +1,6 @@
+{
+  "name": "QUẢN LÝ ỨNG DỤNG - THẦY TRỌNG 3T",
+  "description": "Trang chủ quản lý và khởi chạy nhanh các ứng dụng web - Thầy Trọng 3T.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

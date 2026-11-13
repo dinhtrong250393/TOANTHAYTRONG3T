@@ -1,11 +1,26 @@
-<div align="center">
+# QUẢN LÝ ỨNG DỤNG - THẦY TRỌNG 3T
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Trang chủ quản lý, hiển thị giao diện và khởi chạy nhanh các ứng dụng web, sẵn sàng đẩy lên **GitHub** và triển khai trên **Vercel**.
 
-  <h1>Built with AI Studio</h2>
+## Tính năng chính
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+- **Thêm ứng dụng nhanh**: Nhập tên ứng dụng, tải ảnh giao diện/logo (tự động căn chỉnh tỷ lệ hiển thị trọn vẹn) và gắn đường link chạy app web.
+- **Kích để mở ngay**: Bấm trực tiếp vào thẻ ứng dụng để chạy đường dẫn web trong tab mới.
+- **Quản lý linh hoạt**: Chỉnh sửa, xóa, tìm kiếm nhanh và chuyển đổi giao diện Sáng / Tối; dữ liệu lưu tự động trên trình duyệt.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Triển khai lên GitHub & Vercel
 
-</div>
+1. **Đẩy mã nguồn lên GitHub**:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/<tai-khoan>/<ten-repo>.git
+   git push -u origin main
+   ```
+
+2. **Deploy trên Vercel**:
+   - Truy cập [vercel.com/new](https://vercel.com/new) và chọn **Import** repository từ GitHub.
+   - Vercel tự động nhận diện dự án **Vite** (đã cấu hình sẵn `vercel.json`).
+   - Nhấn **Deploy** để hoàn tất.
